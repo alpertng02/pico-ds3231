@@ -1,13 +1,13 @@
 # pico-ds3231
 This is a work in progress Raspberry Pi Pico library for DS3231 real time clock module.
 Current features are:
-\n->Configuring time.
-\n->Reading time.
-\n->Setting alarm 1 and alarm 2.
-\n->Setting alarm interrupt from SQW pin.
-\n->AM/PM mode.
-\n->Setting output of square wave signal from SQW pin.
-\n->Enabling-Disabling oscillator when on powered by on-board battery.
+1. Configuring time.
+2. Reading time.
+3. Setting alarm 1 and alarm 2.
+4. Setting alarm interrupt from SQW pin.
+5. AM/PM mode.
+6. Setting output of square wave signal from SQW pin.
+7. Enabling-Disabling oscillator when on powered by on-board battery.
 
 #How to Add to Project:
 -
