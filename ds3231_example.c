@@ -2,7 +2,7 @@
 #include "ds3231.h"
 #include <stdio.h>
 
-
+/* A basic callback function that triggers when an alarm triggers. */
 void ds3231_interrupt_callback(uint gpio, uint32_t event_mask) {
     printf("Alarm Enabled\n");
 }
