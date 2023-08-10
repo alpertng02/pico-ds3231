@@ -434,6 +434,7 @@ int ds3231_enable_alarm_interrupt(ds3231_t * rtc, bool enable) {
         interrupt_enable &= ~(0x01 << 2);
     if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &interrupt_enable))
         return -1;
+    return 0;
 } 
 
 /**
@@ -453,7 +454,8 @@ int ds3231_enable_oscillator(ds3231_t * rtc, bool enable) {
     else 
         enable_byte &= ~(0x01 << 7);
     if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &enable_byte))
-        return -1;    
+        return -1; 
+    return 0;   
 }
 
 /**
@@ -476,7 +478,54 @@ int ds3231_enable_battery_backed_square_wave(ds3231_t * rtc, bool enable) {
         enable_byte &= ~(0x01 << 6);
     if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &enable_byte))
         return -1;    
+    return 0;
 }
+
+/**
+ * @brief               Set the frequency of the square-wave output from INT_SQW pin.
+ * Valid expressions for sqr_fqr are:
+ * \n FREQUENCY_1_HZ,
+ * \n FREQUENCY_1024_HZ,
+ * \n FREQUENCY_4096_HZ,
+ * \n FREQUENCY_8192_HZ
+ * @param rtc           DS3231 struct.
+ * @param sqr_frq       Frequency enum.
+ * @return              0 if succesful.
+ */
+int ds3231_set_square_wave_frequency(ds3231_t * rtc, enum SQUARE_WAVE_FREQUENCY sqr_frq) {
+    uint8_t enable_byte = 0;
+    if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &enable_byte))
+        return -1;    
+
+    enable_byte &= ~(0x18);
+
+    switch(sqr_frq) {
+        case FREQUENCY_1_HZ:
+        enable_byte |= (FREQUENCY_1_HZ << 3);
+        break;
+
+        case FREQUENCY_1024_HZ:
+        enable_byte |= (FREQUENCY_1024_HZ << 3);
+        break;
+
+        case FREQUENCY_4096_HZ:
+        enable_byte |= (FREQUENCY_4096_HZ << 3);
+        break;
+
+        case FREQUENCY_8192_HZ:
+        enable_byte |= (FREQUENCY_8192_HZ << 3);
+        break;
+
+        default:
+            return -1;
+        break;
+    }
+
+    if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &enable_byte))
+        return -1;   
+    return  0;
+}
+
 
 /**
  * @brief               Set a interrupt callback function to trigger whenever DS3231 sends an alarm signal.

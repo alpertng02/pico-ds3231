@@ -66,7 +66,14 @@ enum ALARM_2_MASKS {
     ON_MATCHING_MINUTE = 0x06,
     ON_MATCHING_MINUTE_AND_HOUR = 0x05,
     ON_MATCHING_MINUTE_HOUR_AND_DATE = 0x00,
-    ON_MATCHING_MINUTE_HOUR_AND_DAY = 0x01,
+    ON_MATCHING_MINUTE_HOUR_AND_DAY = 0x01
+};
+
+enum SQUARE_WAVE_FREQUENCY {
+    FREQUENCY_1_HZ = 0x0,
+    FREQUENCY_1024_HZ = 0x1,
+    FREQUENCY_4096_HZ = 0x2,
+    FREQUENCY_8192_HZ = 0x3
 };
 
 /**
@@ -134,6 +141,7 @@ int ds3231_set_alarm_2(ds3231_t * rtc, ds3231_alarm_2_t * alarm_time, enum ALARM
 int ds3231_enable_alarm_interrupt(ds3231_t * rtc, bool enable);
 int ds3231_enable_oscillator(ds3231_t * rtc, bool enable);
 int ds3231_enable_battery_backed_square_wave(ds3231_t * rtc, bool enable);
+int ds3231_set_square_wave_frequency(ds3231_t * rtc, enum SQUARE_WAVE_FREQUENCY sqr_frq);
 
 int ds3231_set_interrupt_callback_function(uint gpio, gpio_irq_callback_t callback);
 
