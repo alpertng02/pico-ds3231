@@ -93,8 +93,6 @@ uint8_t bin_to_bcd_am_pm(uint8_t data) {
     return temp;
 }
 
-
-
 /**
  * @brief                   Initiliaze ds3231 struct and specify which I2C instance is going to be used.
  * 
@@ -180,6 +178,42 @@ int ds3231_configure_time(ds3231_t * rtc, ds3231_data_t * data) {
     if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_SECONDS_REG, 7, temp)) 
         return -1;
     
+    /* Checking if time values are within correct ranges. */
+    if(data->seconds > 59) 
+        data->seconds = 59;
+
+    if(data->minutes > 59) 
+        data->minutes = 59;
+
+    if(rtc->am_pm_mode) {
+        if(data->hours > 12)
+            data->hours = 12;
+        else if(data->hours < 1)
+            data->hours = 1;
+    } else {
+        if(data->hours > 23) 
+            data->hours = 23;
+    }
+
+    if(data->day > 7) 
+        data->day = 7;
+    else if(data->day < 1)
+        data->day = 1;
+    
+    if(data->date > 31) 
+        data->date = 31;
+    else if(data->date < 1)
+        data->date = 1;
+
+    if(data->month > 12) 
+        data->month = 12;
+    else if(data->month < 1)
+        data->month = 1;
+    
+    if(data->year > 99) 
+        data->year = 99;
+        
+
     temp[0] = bin_to_bcd(data->seconds);
 
     temp[1] = bin_to_bcd(data->minutes);
@@ -262,6 +296,35 @@ int ds3231_set_alarm_1(ds3231_t * rtc, ds3231_alarm_1_t * alarm_time, enum ALARM
     uint8_t temp[4] = {0, 0 , 0, 0};
     if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_SECONDS_ALARM_1_REG, 4, temp))
         return -1;
+
+        /* Checking if time values are within correct ranges. */
+    if(alarm_time->seconds > 59) 
+        alarm_time->seconds = 59;
+
+    if(alarm_time->minutes > 59) 
+        alarm_time->minutes = 59;
+
+    if(rtc->am_pm_mode) {
+        if(alarm_time->hours > 12)
+            alarm_time->hours = 12;
+        else if(alarm_time->hours < 1)
+            alarm_time->hours = 1;
+    } else {
+        if(alarm_time->hours > 23) 
+            alarm_time->hours = 23;
+    }
+
+    if(alarm_time->day > 7) 
+        alarm_time->day = 7;
+    else if(alarm_time->day < 1)
+        alarm_time->day = 1;
+    
+    if(alarm_time->date > 31) 
+        alarm_time->date = 31;
+    else if(alarm_time->date < 1)
+        alarm_time->date = 1;
+
+    
     switch(mask) {
         case ON_EVERY_SECOND:
             for(int i = 0; i < 4; i++) 
@@ -367,6 +430,30 @@ int ds3231_set_alarm_2(ds3231_t * rtc, ds3231_alarm_2_t * alarm_time, enum ALARM
     uint8_t temp[3] = {0, 0 , 0};
     if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_MINUTES_ALARM_2_REG, 3, temp))
         return -1;
+
+    if(alarm_time->minutes > 59) 
+        alarm_time->minutes = 59;
+
+    if(rtc->am_pm_mode) {
+        if(alarm_time->hours > 12)
+            alarm_time->hours = 12;
+        else if(alarm_time->hours < 1)
+            alarm_time->hours = 1;
+    } else {
+        if(alarm_time->hours > 23) 
+            alarm_time->hours = 23;
+    }
+
+    if(alarm_time->day > 7) 
+        alarm_time->day = 7;
+    else if(alarm_time->day < 1)
+        alarm_time->day = 1;
+    
+    if(alarm_time->date > 31) 
+        alarm_time->date = 31;
+    else if(alarm_time->date < 1)
+        alarm_time->date = 1;
+
     switch(mask) {
         case ON_EVERY_MINUTE:
             for(int i = 0; i < 3; i++)
