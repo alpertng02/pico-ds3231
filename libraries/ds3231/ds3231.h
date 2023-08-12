@@ -1,3 +1,16 @@
+/**
+ * @file    ds3231.h
+ * @author  Alper Tunga Güven (alperguven@std.iyte.edu.tr)
+ * @brief   A driver library for DS3231 written for Raspberry Pi Pico.
+ * Datasheet Link: https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231.pdf
+ * @version 0.1
+ * @date    2023-08-12
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #include "hardware/i2c.h"
 #include "hardware/gpio.h"
 
@@ -41,6 +54,10 @@ adress can be changed by soldering jumpers to A0, A1 and A2 inputs on the module
 #define DS3231_CONTROL_REG              0x0E
 #define DS3231_CONTROL_STATUS_REG       0x0F
 
+#define DS3231_AGING_OFFSET_REG         0x10
+
+#define DS3231_TEMPERATURE_MSB_REG      0x11
+#define DS3231_TEMPERATURE_LSB_REG      0x12
 
 enum days_of_week {
     MONDAY  = 1,
@@ -131,17 +148,24 @@ typedef struct ds3231_alarm_2_t {
 
 int ds3231_init(ds3231_t * rtc, i2c_inst_t * i2c, uint8_t dev_addr, uint8_t eeprom_addr);
 int ds3231_configure_time(ds3231_t * rtc, ds3231_data_t * data);
-int ds3231_enable_am_pm_mode(ds3231_t * rtc, bool enable);
 
 int ds3231_read_current_time(ds3231_t * rtc, ds3231_data_t * data);
+int ds3231_read_temperature(ds3231_t * rtc, float * resolution);
 
 int ds3231_set_alarm_1(ds3231_t * rtc, ds3231_alarm_1_t * alarm_time, enum ALARM_1_MASKS mask);
 int ds3231_set_alarm_2(ds3231_t * rtc, ds3231_alarm_2_t * alarm_time, enum ALARM_2_MASKS mask);
 
+int ds3231_enable_am_pm_mode(ds3231_t * rtc, bool enable);
 int ds3231_enable_alarm_interrupt(ds3231_t * rtc, bool enable);
 int ds3231_enable_oscillator(ds3231_t * rtc, bool enable);
+int ds3231_enable_32khz_square_wave(ds3231_t * rtc, bool enable);
 int ds3231_enable_battery_backed_square_wave(ds3231_t * rtc, bool enable);
+
+int ds3231_check_oscillator_stop_flag(ds3231_t * rtc);
+int ds3231_force_convert_temperature(ds3231_t * rtc);
 int ds3231_set_square_wave_frequency(ds3231_t * rtc, enum SQUARE_WAVE_FREQUENCY sqr_frq);
+
+int ds3231_set_aging_offset(ds3231_t * rtc, int8_t offset);
 
 int ds3231_set_interrupt_callback_function(uint gpio, gpio_irq_callback_t callback);
 

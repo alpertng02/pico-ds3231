@@ -71,7 +71,7 @@ int main() {
     while(true) {
         /* Read the time registers of DS3231. */
         if(ds3231_read_current_time(&ds3231, &ds3231_data)) {
-            printf("No data is receivedç\n");
+            printf("No data is received\n");
         } else {
             printf("%02u:%02u:%02u  %02u/%02u/20%02u\n", 
             ds3231_data.hours, ds3231_data.minutes, ds3231_data.seconds, ds3231_data.date, ds3231_data.month, ds3231_data.year);

@@ -1,3 +1,15 @@
+/**
+ * @file ds3231.c
+ * @author  Alper Tunga Güven (alperguven@std.iyte.edu.tr)
+ * @brief   A driver library for DS3231 written for Raspberry Pi Pico.
+ * Datasheet Link: https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231.pdf
+ * @version 0.1
+ * @date    2023-08-12
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "ds3231.h"
 
 /**
@@ -52,19 +64,26 @@ int i2c_write_reg(i2c_inst_t * i2c, uint8_t dev_addr,
 
 /**
  * @brief           Library function that takes an 8 bit unsigned integer and converts into
- *  data that can be written to DS3231 registers.
+ *  Binary Coded Decimal number that can be written to DS3231 registers.
  * 
  * @param[in] data  Number to be converted.
- * @return          Number in hardware form
+ * @return          Number in BCD form.
  */
-uint8_t real_to_hw(const uint8_t data) {
+uint8_t bin_to_bcd(const uint8_t data) {
     uint8_t ones_digit = (uint8_t)(data % 10);
     uint8_t twos_digit = (uint8_t)(data - ones_digit) / 10;
     return ((twos_digit << 4) + ones_digit);
 }
 
-uint8_t real_to_am_pm(uint8_t data) {
-    uint8_t temp = real_to_hw(data);
+/**
+ * @brief           Library function that takes an 8 bit unsigned integer and converts it into
+ * Binary Coded Decimal number where bit 5 and 6 represent the AM/PM characteristics.
+ * 
+ * @param[in] data  Number to converted.
+ * @return          Number in BCD form with AM/PM bits.
+ */
+uint8_t bin_to_bcd_am_pm(uint8_t data) {
+    uint8_t temp = bin_to_bcd(data);
     uint8_t am_pm = 0x00;
     if(data > 12) {
         am_pm = 0x01;
@@ -149,33 +168,40 @@ int ds3231_enable_am_pm_mode(ds3231_t * rtc, bool enable) {
     return 0;
 }
 
+/**
+ * @brief               Configure the current time in DS3231.
+ * 
+ * @param[in] rtc       DS3231 struct.
+ * @param[in] data      Data struct that holds the time that will be set in DS3231.
+ * @return              0 if succesful.
+ */
 int ds3231_configure_time(ds3231_t * rtc, ds3231_data_t * data) {
     uint8_t temp[7] = {0, 0, 0, 0, 0, 0, 0};
     if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_SECONDS_REG, 7, temp)) 
         return -1;
     
-    temp[0] = real_to_hw(data->seconds);
+    temp[0] = bin_to_bcd(data->seconds);
 
-    temp[1] = real_to_hw(data->minutes);
+    temp[1] = bin_to_bcd(data->minutes);
 
     if(rtc->am_pm_mode) {
-        temp[2] = real_to_am_pm(data->hours);
+        temp[2] = bin_to_bcd_am_pm(data->hours);
         temp[2] |= (0x01 << 6);
     } else {
-        temp[2] = real_to_hw(data->hours);
+        temp[2] = bin_to_bcd(data->hours);
         temp[2] &= ~(0x01 << 6);
     }
 
-    temp[3] = real_to_hw(data->day);
+    temp[3] = bin_to_bcd(data->day);
 
-    temp[4] = real_to_hw(data->date);
+    temp[4] = bin_to_bcd(data->date);
 
-    temp[5] = real_to_hw(data->month);
+    temp[5] = bin_to_bcd(data->month);
 
     if(data->century)
         temp[5] |= (0x01 << 7);
     
-    temp[6] = real_to_hw(data->year);
+    temp[6] = bin_to_bcd(data->year);
     
     if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_SECONDS_REG, 7, temp)) 
         return -1;
@@ -243,15 +269,15 @@ int ds3231_set_alarm_1(ds3231_t * rtc, ds3231_alarm_1_t * alarm_time, enum ALARM
         break;
 
         case ON_MATCHING_SECOND:
-            temp[0] = real_to_hw(alarm_time->seconds);
+            temp[0] = bin_to_bcd(alarm_time->seconds);
             temp[0] &= ~(0x01 << 7);
             for(int i = 1; i < 4; i++) 
                 temp[i] |= (0x01 << 7);
         break;
 
         case ON_MATCHING_SECOND_AND_MINUTE:
-            temp[0] = real_to_hw(alarm_time->seconds);
-            temp[1] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->seconds);
+            temp[1] = bin_to_bcd(alarm_time->minutes);
             for(int i = 0; i < 2; i++) 
                 temp[i] &= ~(0x01 << 7);
             for(int i = 2; i < 4; i++) 
@@ -259,13 +285,13 @@ int ds3231_set_alarm_1(ds3231_t * rtc, ds3231_alarm_1_t * alarm_time, enum ALARM
         break;
 
         case ON_MATCHING_SECOND_MINUTE_AND_HOUR:
-            temp[0] = real_to_hw(alarm_time->seconds);
-            temp[1] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->seconds);
+            temp[1] = bin_to_bcd(alarm_time->minutes);
             if(rtc->am_pm_mode) {
-                temp[2] = real_to_am_pm(alarm_time->hours);
+                temp[2] = bin_to_bcd_am_pm(alarm_time->hours);
                 temp[2] |= (0x01 << 6);        
             } else {
-                temp[2] = real_to_hw(alarm_time->hours);
+                temp[2] = bin_to_bcd(alarm_time->hours);
                 temp[2] &= ~(0x01 << 6);        
             }     
             for(int i = 0; i < 3; i++)
@@ -274,16 +300,16 @@ int ds3231_set_alarm_1(ds3231_t * rtc, ds3231_alarm_1_t * alarm_time, enum ALARM
         break;
 
         case ON_MATCHING_SECOND_MINUTE_HOUR_AND_DATE:
-            temp[0] = real_to_hw(alarm_time->seconds);
-            temp[1] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->seconds);
+            temp[1] = bin_to_bcd(alarm_time->minutes);
             if(rtc->am_pm_mode) {
-                temp[2] = real_to_am_pm(alarm_time->hours);
+                temp[2] = bin_to_bcd_am_pm(alarm_time->hours);
                 temp[2] |= (0x01 << 6);        
             } else {
-                temp[2] = real_to_hw(alarm_time->hours);
+                temp[2] = bin_to_bcd(alarm_time->hours);
                 temp[2] &= ~(0x01 << 6);        
             }     
-            temp[3] = real_to_hw(alarm_time->date);
+            temp[3] = bin_to_bcd(alarm_time->date);
             temp[3] &= ~(0x01 << 6);
             for(int i = 0; i < 3; i++)
                 temp[i] &= ~(0x01 << 7);            
@@ -291,16 +317,16 @@ int ds3231_set_alarm_1(ds3231_t * rtc, ds3231_alarm_1_t * alarm_time, enum ALARM
         break;
 
         case ON_MATCHING_SECOND_MINUTE_HOUR_AND_DAY:
-            temp[0] = real_to_hw(alarm_time->seconds);
-            temp[1] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->seconds);
+            temp[1] = bin_to_bcd(alarm_time->minutes);
             if(rtc->am_pm_mode) {
-                temp[2] = real_to_am_pm(alarm_time->hours);
+                temp[2] = bin_to_bcd_am_pm(alarm_time->hours);
                 temp[2] |= (0x01 << 6);        
             } else {
-                temp[2] = real_to_hw(alarm_time->hours);
+                temp[2] = bin_to_bcd(alarm_time->hours);
                 temp[2] &= ~(0x01 << 6);        
             }     
-            temp[3] = real_to_hw(alarm_time->day);
+            temp[3] = bin_to_bcd(alarm_time->day);
             temp[3] |= (0x01 << 6);
             for(int i = 0; i < 3; i++)
                 temp[i] &= ~(0x01 << 7);            
@@ -348,19 +374,19 @@ int ds3231_set_alarm_2(ds3231_t * rtc, ds3231_alarm_2_t * alarm_time, enum ALARM
         break;
 
         case ON_MATCHING_MINUTE:
-            temp[0] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->minutes);
             temp[0] &= ~(0x01 << 7);
             for(int i = 1; i < 3; i++)
                 temp[i] |= (0x01 << 7);
         break;
 
         case ON_MATCHING_MINUTE_AND_HOUR:
-            temp[0] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->minutes);
             if(rtc->am_pm_mode) {
-                temp[1] = real_to_am_pm(alarm_time->hours);
+                temp[1] = bin_to_bcd_am_pm(alarm_time->hours);
                 temp[1] |= (0x01 << 6);
             } else {
-                temp[1] = real_to_hw(alarm_time->hours);
+                temp[1] = bin_to_bcd(alarm_time->hours);
                 temp[1] &= ~(0x01 << 6);
             }
             for(int i = 0; i < 2; i++)
@@ -369,30 +395,30 @@ int ds3231_set_alarm_2(ds3231_t * rtc, ds3231_alarm_2_t * alarm_time, enum ALARM
         break;
 
         case ON_MATCHING_MINUTE_HOUR_AND_DATE:
-            temp[0] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->minutes);
             if(rtc->am_pm_mode) {
-                temp[1] = real_to_am_pm(alarm_time->hours);
+                temp[1] = bin_to_bcd_am_pm(alarm_time->hours);
                 temp[1] |= (0x01 << 6);
             } else {
-                temp[1] = real_to_hw(alarm_time->hours);
+                temp[1] = bin_to_bcd(alarm_time->hours);
                 temp[1] &= ~(0x01 << 6);
             }
-            temp[2] = real_to_hw(alarm_time->date);
+            temp[2] = bin_to_bcd(alarm_time->date);
             temp[2] &= ~(0x01 << 6);
             for(int i = 0; i < 3; i++)
                 temp[i] &= ~(0x01 << 7);
         break;
 
         case ON_MATCHING_MINUTE_HOUR_AND_DAY:
-            temp[0] = real_to_hw(alarm_time->minutes);
+            temp[0] = bin_to_bcd(alarm_time->minutes);
             if(rtc->am_pm_mode) {
-                temp[1] = real_to_am_pm(alarm_time->hours);
+                temp[1] = bin_to_bcd_am_pm(alarm_time->hours);
                 temp[1] |= (0x01 << 6);
             } else {
-                temp[1] = real_to_hw(alarm_time->hours);
+                temp[1] = bin_to_bcd(alarm_time->hours);
                 temp[1] &= ~(0x01 << 6);
             }
-            temp[2] = real_to_hw(alarm_time->date);
+            temp[2] = bin_to_bcd(alarm_time->date);
             temp[2] |= (0x01 << 6);
             for(int i = 0; i < 3; i++)
                 temp[i] &= ~(0x01 << 7);
@@ -418,7 +444,8 @@ int ds3231_set_alarm_2(ds3231_t * rtc, ds3231_alarm_2_t * alarm_time, enum ALARM
 
 /**
  * @brief               Enable alarm interrupt on DS3231. If either alarm 1 or alarm 2 is enabled,
- * DS3231 will send a signal through INT/SQW pin. Default mode is enabled
+ * DS3231 will send a signal through INT/SQW pin. Default mode is enabled. 
+ * This functionality is mutually exclusive with square wave output.
  * 
  * @param[in] rtc       DS3231 struct.
  * @param[in] enable    Enabled if true, disabled if false;
@@ -438,8 +465,29 @@ int ds3231_enable_alarm_interrupt(ds3231_t * rtc, bool enable) {
 } 
 
 /**
+ * @brief               Enable or disable the 32.768kHZ square wave output of DS3231 from the 32K pin. 
+ * If disabled, the pin goes into high impedence mode.
+ * 
+ * @param[in] rtc       DS3231 struct.
+ * @param[in] enable    Enabled if true, disabled if false.
+ * @return              0 if succesful.
+ */
+int ds3231_enable_32khz_square_wave(ds3231_t * rtc, bool enable) {
+    uint8_t status = 0;
+    if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_STATUS_REG, 1, &status))
+        return -1;
+    if(enable) 
+        status |= (0x01 << 3);
+    else 
+        status &= ~(0x01 << 3);
+    if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_STATUS_REG, 1, &status))
+        return -1;    
+    return 0;    
+}
+
+/**
  * @brief               Enable or disable oscillator on DS3231. It is enabled by default.
- * If disabled, oscillator stops if running on on-board battery (Vbat)  . 
+ * If disabled, oscillator stops if running on on-board battery (Vbat). 
  * 
  * @param[in] rtc       DS3231 struct.
  * @param[in] enable    Enabled if true, disabled if false.
@@ -483,6 +531,7 @@ int ds3231_enable_battery_backed_square_wave(ds3231_t * rtc, bool enable) {
 
 /**
  * @brief               Set the frequency of the square-wave output from INT_SQW pin.
+ * If square-wave output is selected, the DS3231 module cannot send alarm interrupt signals.
  * Valid expressions for sqr_fqr are:
  * \n FREQUENCY_1_HZ,
  * \n FREQUENCY_1024_HZ,
@@ -526,15 +575,88 @@ int ds3231_set_square_wave_frequency(ds3231_t * rtc, enum SQUARE_WAVE_FREQUENCY 
     return  0;
 }
 
+/**
+ * @brief           Force the temperature sensor to convert the temperature into digital code 
+ * and execute the TCXO algorithm to update the capacitance array to the oscillator.
+ * 
+ * @param[in] rtc   DS3231 struct.
+ * @return          0 if succesful.
+ */
+int ds3231_force_convert_temperature(ds3231_t * rtc) {
+    uint8_t status = 0;
+    /* Read the status register to check the BSY bit. */
+    if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_STATUS_REG, 1, &status)) 
+        return -1;
+    /* If BSY bit in the status register is logic 1, the temperature conversion cannot be initiated. */
+    if(status & (0x01 << 2)) 
+        return -1;
+    /* Read the control register and set the CONV bit to logic 1. */
+    if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &status)) 
+        return -1;    
+    status |= (0x01 <<  5);
+    if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_REG, 1, &status)) 
+        return -1;
+    return 0;
+}
+
+/**
+ * @brief                   Read the temperature data from DS3231.
+ * 
+ * @param[in] rtc           DS3231 struct.      
+ * @param[out] temperature  Temperature data with 0.25 resolution.
+ * @return                  0 if succesful.
+ */ 
+int ds3231_read_temperature(ds3231_t * rtc, float * temperature) {
+    uint8_t temp[2] = {0, 0};
+    if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_TEMPERATURE_MSB_REG, 2, temp))
+        return -1;
+    
+    *temperature = temp[0] + (float)(1 / (temp[1] >> 6));
+    return 0;
+}
+
+/**
+ * @brief           Check the DS3231 status register to see if the oscillator is working.
+ * 
+ * @param[in] rtc   DS3231 struct.
+ * @return          0 if oscillator is working, 1 if oscillator stopped, -1 if an I2C error occurs.
+ */
+int ds3231_check_oscillator_stop_flag(ds3231_t * rtc) {
+    uint8_t status = 0;
+    if(i2c_read_reg(rtc->i2c, rtc->ds3231_addr, DS3231_CONTROL_STATUS_REG, 1, &status))
+        return -1;
+    if(status & (0x01 << 7)) 
+        return 1;
+    return 0;
+}
+
+/** 
+ * @brief               Set the aging offset for the ds3231 for oscillator calibration.
+ * The offset value is encoded in two's complement with 7 representing the sign bit.
+ * Check the datasheet at the beginning of the file for more information on how to calibrate.
+ * 
+ * @param[in] rtc       DS3231 struct.  
+ * @param[in] offset    Offset value to be written in registers.
+ * @return              0 if succesful.
+ */
+int ds3231_set_aging_offset(ds3231_t * rtc, int8_t offset) {
+    int8_t temp = offset;
+    uint8_t aging_offset = *((uint8_t *)(&temp));
+    if(i2c_write_reg(rtc->i2c, rtc->ds3231_addr, DS3231_AGING_OFFSET_REG, 1, &aging_offset))
+        return -1;    
+    return 0;
+}
 
 /**
  * @brief               Set a interrupt callback function to trigger whenever DS3231 sends an alarm signal.
+ * Each core in RP2040 can only have a interrupt single callback function. 
  * 
  * @param[out] gpio     Pin to receive the interrupt signal.     
  * @param[out] callback Pointer to the callback function.
  * @return              0 if succesful.
  */
 int ds3231_set_interrupt_callback_function(uint gpio, gpio_irq_callback_t callback) {
+    /* Set the pin that will trigger the interrupt as an input pull-up pin. */
     gpio_init(gpio);
     gpio_set_dir(gpio, 0);
     gpio_pull_up(gpio);
