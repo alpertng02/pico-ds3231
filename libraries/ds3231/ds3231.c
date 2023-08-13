@@ -26,13 +26,13 @@ int i2c_read_reg(i2c_inst_t * i2c, uint8_t dev_addr,
     uint8_t reg_addr, size_t length, uint8_t * data) 
 {
     if(!length) 
-        return 0;
+        return -1;
     uint8_t reg = reg_addr; 
     if(i2c_write_blocking(i2c, dev_addr, &reg, 1, true) == PICO_ERROR_GENERIC) {
-        return PICO_ERROR_GENERIC;
+        return -1;
     }
     if(i2c_read_blocking(i2c, dev_addr, data, length, false) == PICO_ERROR_GENERIC) {
-        return PICO_ERROR_GENERIC;
+        return -1;
     }
     return 0;
 }
@@ -51,14 +51,14 @@ int i2c_write_reg(i2c_inst_t * i2c, uint8_t dev_addr,
     uint8_t reg_addr, size_t length, uint8_t * data)
 {
     if(!length) 
-        return 0;
-    
+        return -1;
     uint8_t messeage[length + 1];
     messeage[0] = reg_addr;
     for(int i = 0; i < length; i++) {
         messeage[i + 1] = data[i];
     }
-    i2c_write_blocking(i2c, dev_addr, messeage, (length + 1), false);
+    if(i2c_write_blocking(i2c, dev_addr, messeage, (length + 1), false) == PICO_ERROR_GENERIC)
+        return -1;
     return 0;
 }
 

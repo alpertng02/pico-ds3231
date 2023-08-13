@@ -31,6 +31,9 @@ adress can be changed by soldering jumpers to A0, A1 and A2 inputs on the module
 #define AT24C32_EEPROM_ADRESS_6         0x51    // A2 A1
 #define AT24C32_EEPROM_ADRESS_7         0x50    // A2 A1 A0
 
+#define AT24C32_PAGE_COUNT              256     
+#define AT24C32_PAGE_SIZE               32      // Bytes
+
 /* Timekeeping Registers */
 #define DS3231_SECONDS_REG              0x00
 #define DS3231_MINUTES_REG              0x01
@@ -145,6 +148,7 @@ typedef struct ds3231_alarm_2_t {
     uint8_t date;
 } ds3231_alarm_2_t;
 
+/* DS3231 Functions: */
 
 int ds3231_init(ds3231_t * rtc, i2c_inst_t * i2c, uint8_t dev_addr, uint8_t eeprom_addr);
 int ds3231_configure_time(ds3231_t * rtc, ds3231_data_t * data);
@@ -168,5 +172,20 @@ int ds3231_set_square_wave_frequency(ds3231_t * rtc, enum SQUARE_WAVE_FREQUENCY 
 int ds3231_set_aging_offset(ds3231_t * rtc, int8_t offset);
 
 int ds3231_set_interrupt_callback_function(uint gpio, gpio_irq_callback_t callback);
+
+/*--------------------------------------------------------------------------------------------------------*/
+
+/* AT24C32 Functions: */
+
+int at24c32_i2c_write_page(i2c_inst_t * i2c, uint8_t dev_addr, 
+    uint8_t page_addr, uint8_t starting_byte, size_t length, uint8_t * data);
+
+int at24c32_i2c_read_page(i2c_inst_t * i2c, uint8_t dev_addr, 
+    uint8_t page_addr, uint8_t starting_byte, size_t length, uint8_t * data);
+
+int at24c32_read_current_adress(i2c_inst_t * i2c, uint8_t dev_addr,
+    size_t length, uint8_t * data);
+
+int at24c32_write_current_time(ds3231_t * rtc, uint8_t page_addr);
 
 #endif

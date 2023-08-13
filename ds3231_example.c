@@ -15,6 +15,8 @@ int main() {
     uint8_t scl_pin = 13;
     uint8_t int_pin = 18; 
 
+    const char * days[7] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+
     /* Set your current time. */
     ds3231_data_t ds3231_data = {
         .seconds = 25,
@@ -73,8 +75,9 @@ int main() {
         if(ds3231_read_current_time(&ds3231, &ds3231_data)) {
             printf("No data is received\n");
         } else {
-            printf("%02u:%02u:%02u  %02u/%02u/20%02u\n", 
-            ds3231_data.hours, ds3231_data.minutes, ds3231_data.seconds, ds3231_data.date, ds3231_data.month, ds3231_data.year);
+            printf("%02u:%02u:%02u    %10s    %02u/%02u/20%02u\n", 
+                ds3231_data.hours, ds3231_data.minutes, ds3231_data.seconds, 
+                days[ds3231_data.day - 1], ds3231_data.date, ds3231_data.month, ds3231_data.year);
         }
         #ifdef PICO_DEFAULT_LED_PIN
         gpio_put(25, 0);
